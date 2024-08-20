@@ -1,26 +1,62 @@
-name: Azure CLI Interaction
+name: Azure ML Scheduling
 
 on:
   workflow_dispatch:
+    inputs:
+      compute_cluster_action:
+        description: 'Action for Azure ML Compute Cluster'
+        required: true
+        default: 'create'
+        type: choice
+        options:
+          - create
+          - update
+          - skip
+      schedule_action:
+        description: 'Action for Azure ML Schedule'
+        required: true
+        default: 'create'
+        type: choice
+        options:
+          - create
+          - update
+          - skip
 
 jobs:
-  azure-cli:
+  manage-ml-resources:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Log in to Azure CLI
-      uses: azure/login@v2.1.0
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Log in to Azure CLI
+        uses: azure/login@v2.1.0
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Run Azure CLI Command
-      run: |
-        # Example Azure CLI commands
-        az account show
-        az group list
+      - name: Install Azure ML CLI extension
+        run: |
+          az extension add -n ml
+          az ml -h 
 
-    - name: Log out from Azure CLI
-      run: az logout
+      - name: Manage Azure ML Compute Cluster
+        if: ${{ inputs.compute_cluster_action != 'skip' }}
+        run: |
+          az ml compute ${{ inputs.compute_cluster_action }} --file ./scripts/01_create_compute_cluster.yml --resource-group inbrein-azure-ml-research --workspace-name inbrein-azure-ml-research-eunsang
+
+      - name: Skip Azure ML Compute Cluster
+        if: ${{ inputs.compute_cluster_action == 'skip' }}
+        run: echo "Skipping Azure ML Compute Cluster action"
+
+      - name: Manage Azure ML Schedule
+        if: ${{ inputs.schedule_action != 'skip' }}
+        run: |
+          az ml schedule ${{ inputs.schedule_action }} --file ./scripts/01_scheduling_job.yml --resource-group inbrein-azure-ml-research --workspace-name inbrein-azure-ml-research-eunsang
+
+      - name: Skip Azure ML Schedule
+        if: ${{ inputs.schedule_action == 'skip' }}
+        run: echo "Skipping Azure ML Schedule action"
+
+      - name: Log out from Azure CLI
+        run: az logout
