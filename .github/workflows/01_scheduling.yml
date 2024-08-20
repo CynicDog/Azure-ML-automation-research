@@ -1,0 +1,26 @@
+name: Azure CLI Interaction
+
+on:
+  workflow_dispatch:
+
+jobs:
+  azure-cli:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Log in to Azure CLI
+      uses: azure/login@v2.1.0
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Run Azure CLI Command
+      run: |
+        # Example Azure CLI commands
+        az account show
+        az group list
+
+    - name: Log out from Azure CLI
+      run: az logout
