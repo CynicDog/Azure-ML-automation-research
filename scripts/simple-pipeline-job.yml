@@ -17,7 +17,7 @@ jobs:
         --workspace-name inbrein-azure-ml-research-eunsang \
         --resource-group inbrein-azure-ml-research
       
-      # Example: List datasets in the Azure ML workspace
+      # List datasets in the Azure ML workspace
       az ml data list --workspace-name inbrein-azure-ml-research-eunsang --resource-group inbrein-azure-ml-research
     environment:
       image: eunsangacr.azurecr.io/azureml-with-azcli:latest  # Referencing the ACR image
