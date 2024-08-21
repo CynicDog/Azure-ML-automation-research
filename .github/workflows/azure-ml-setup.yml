@@ -1,4 +1,4 @@
-name: Azure ML Scheduling an authenticated pipelineJob with dockerized Azure-CLI environment
+name: Azure ML Scheduling
 
 on:
   workflow_dispatch:
@@ -6,7 +6,6 @@ on:
 jobs:
   prepare-and-push-docker-environment:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -15,10 +14,6 @@ jobs:
         uses: azure/login@v2.1.0
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Log in to Azure Container Registry
-        run: |
-          az acr login --name eunsangacr
 
       - name: Log in to Azure Container Registry
         run: |
@@ -74,27 +69,18 @@ jobs:
             --query container_registry \
             -o tsv)
           
-          # Check if the ACR instance name was found
-          if [ -z "$acr_instance_name" ]; then
-            echo "ACR instance name not found."
-            exit 1
-          fi
-          
-          # Set the environment variable
-          echo "ACR_INSTANCE_NAME=$(basename $acr_instance_name)" >> $GITHUB_ENV
-          
           # Disable admin user to use managed identity
           az acr update --name $(basename $acr_instance_name) --admin-enabled false
 
       - name: Create Azure ML Compute Cluster
         run: |
-          az ml compute create --file ./scripts/01_create_compute_cluster.yml \
+          az ml compute create --file ./scripts/create_compute_cluster.yml \
           --resource-group inbrein-azure-ml-research \
           --workspace-name inbrein-azure-ml-research-eunsang
 
       - name: Create Azure ML Schedule
         run: |
-          az ml schedule create --file ./scripts/01_scheduling_job.yml \
+          az ml schedule create --file ./scripts/scheduling_job.yml \
           --resource-group inbrein-azure-ml-research \
           --workspace-name inbrein-azure-ml-research-eunsang
 
