@@ -1,4 +1,3 @@
-
 $schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
 type: pipeline
 display_name: scheduled_pipeline
@@ -7,9 +6,6 @@ compute: azureml:eunsang-ml-research
 jobs:
   prepare_dataset:
     command: |
-      # Authenticate with Azure
-      az login --service-principal -u {YOUR_CLIENT_ID} -p {YOUR_CLIENT_SECRET} --tenant {YOUR_TENANT_ID}
-      
       # Create dataset 
       az ml data create --name iris-dataset \
         --path /app/datasets/iris.csv \
@@ -18,6 +14,19 @@ jobs:
         --resource-group inbrein-azure-ml-research
       
       # List datasets in the Azure ML workspace
-      az ml data list --workspace-name inbrein-azure-ml-research-eunsang --resource-group inbrein-azure-ml-research
+      az ml data list \
+        --workspace-name inbrein-azure-ml-research-eunsang \
+        --resource-group inbrein-azure-ml-research
+
     environment:
-      image: eunsangacr.azurecr.io/azureml-with-azcli:latest  # Referencing the ACR image
+      image: eunsangacr.azurecr.io/azureml-with-azcli:latest
+
+  setup_automl:
+    command: |
+      # Create automl job 
+      az ml job create --file /app/configs/automl_settings.yml \
+        --workspace-name inbrein-azure-ml-research-eunsang \
+        --resource-group inbrein-azure-ml-research
+    
+    environment:
+      image: eunsangacr.azurecr.io/azureml-with-azcli:latest  

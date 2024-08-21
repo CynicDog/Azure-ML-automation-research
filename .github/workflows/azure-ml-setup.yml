@@ -1,4 +1,4 @@
-name: Azure ML Scheduling
+name: Azure ML Scheduling an authenticated pipelineJob with dockerized Azure-CLI environment
 
 on:
   workflow_dispatch:
@@ -74,7 +74,7 @@ jobs:
 
       - name: Create Azure ML Compute Cluster
         run: |
-          az ml compute create --file ./scripts/create_compute_cluster.yml \
+          az ml compute create --file ./scripts/compute_cluster.yml \
           --resource-group inbrein-azure-ml-research \
           --workspace-name inbrein-azure-ml-research-eunsang
 
