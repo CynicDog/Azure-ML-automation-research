@@ -6,6 +6,10 @@ RUN apt-get update && \
     curl -sL https://aka.ms/InstallAzureCLIDeb | bash && \
     apt-get clean
 
+WORKDIR /app
+
+COPY iris.csv /app/datasets/iris.csv
+
 # Install Azure ML CLI extension
 RUN az extension add -n ml
 
