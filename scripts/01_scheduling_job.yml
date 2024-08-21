@@ -1,10 +1,10 @@
 $schema: https://azuremlschemas.azureedge.net/latest/schedule.schema.json
 name: simple_cron_job_schedule
 display_name: Simple cron job schedule
-description: a simple hourly cron job schedule
+description: A simple hourly cron job schedule
 
 trigger:
   type: cron
-  expression: "0 */2 * * *"   # at every 2nd hour
+  expression: "0 */2 * * *"   # every 2 hours
 
 create_job: ./simple-pipeline-job.yml

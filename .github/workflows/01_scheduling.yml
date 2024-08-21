@@ -1,30 +1,48 @@
-name: Azure ML Scheduling
+name: Azure ML Scheduling an authenticated pipelineJob with dockerized Azure-CLI environment
 
 on:
   workflow_dispatch:
-    inputs:
-      compute_cluster_action:
-        description: 'Action for Azure ML Compute Cluster'
-        required: true
-        default: 'create'
-        type: choice
-        options:
-          - create
-          - update
-          - skip
-      schedule_action:
-        description: 'Action for Azure ML Schedule'
-        required: true
-        default: 'create'
-        type: choice
-        options:
-          - create
-          - update
-          - skip
 
 jobs:
-  manage-ml-resources:
+  prepare-and-push-docker-environment:
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure CLI
+        uses: azure/login@v2.1.0
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name eunsangacr
+
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name eunsangacr
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }} \
+            --build-arg AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }} \
+            --build-arg AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }} \
+            -t eunsangacr.azurecr.io/azureml-with-azcli:latest \
+            -f ./configs/Azure-CLI-Environment/Dockerfile ./configs/Azure-CLI-Environment
+
+      - name: Push Docker image to ACR
+        run: |
+          docker push eunsangacr.azurecr.io/azureml-with-azcli:latest
+
+      - name: Log out from Azure CLI
+        run: az logout
+
+  create-schedule:
+    runs-on: ubuntu-latest
+    needs: prepare-and-push-docker-environment
 
     steps:
       - name: Checkout repository
@@ -40,23 +58,45 @@ jobs:
           az extension add -n ml
           az ml -h 
 
-      - name: Manage Azure ML Compute Cluster
-        if: ${{ inputs.compute_cluster_action != 'skip' }}
+      - name: Sync keys for dependent resources
         run: |
-          az ml compute ${{ inputs.compute_cluster_action }} --file ./scripts/01_create_compute_cluster.yml --resource-group inbrein-azure-ml-research --workspace-name inbrein-azure-ml-research-eunsang
+          az ml workspace sync-keys \
+          --resource-group inbrein-azure-ml-research \
+          --name inbrein-azure-ml-research-eunsang
 
-      - name: Skip Azure ML Compute Cluster
-        if: ${{ inputs.compute_cluster_action == 'skip' }}
-        run: echo "Skipping Azure ML Compute Cluster action"
-
-      - name: Manage Azure ML Schedule
-        if: ${{ inputs.schedule_action != 'skip' }}
+      - name: Configure workspace permission to use managed identity
         run: |
-          az ml schedule ${{ inputs.schedule_action }} --file ./scripts/01_scheduling_job.yml --resource-group inbrein-azure-ml-research --workspace-name inbrein-azure-ml-research-eunsang
+          # Get the ACR instance name
+          acr_instance_name=$(az ml workspace show \
+            --name inbrein-azure-ml-research-eunsang \
+            --resource-group inbrein-azure-ml-research \
+            --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }} \
+            --query container_registry \
+            -o tsv)
+          
+          # Check if the ACR instance name was found
+          if [ -z "$acr_instance_name" ]; then
+            echo "ACR instance name not found."
+            exit 1
+          fi
+          
+          # Set the environment variable
+          echo "ACR_INSTANCE_NAME=$(basename $acr_instance_name)" >> $GITHUB_ENV
+          
+          # Disable admin user to use managed identity
+          az acr update --name $(basename $acr_instance_name) --admin-enabled false
 
-      - name: Skip Azure ML Schedule
-        if: ${{ inputs.schedule_action == 'skip' }}
-        run: echo "Skipping Azure ML Schedule action"
+      - name: Create Azure ML Compute Cluster
+        run: |
+          az ml compute create --file ./scripts/01_create_compute_cluster.yml \
+          --resource-group inbrein-azure-ml-research \
+          --workspace-name inbrein-azure-ml-research-eunsang
+
+      - name: Create Azure ML Schedule
+        run: |
+          az ml schedule create --file ./scripts/01_scheduling_job.yml \
+          --resource-group inbrein-azure-ml-research \
+          --workspace-name inbrein-azure-ml-research-eunsang
 
       - name: Log out from Azure CLI
         run: az logout
