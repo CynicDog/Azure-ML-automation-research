@@ -36,7 +36,7 @@ flowchart TD
 ### Detailed Tasks of `pipelineJob`   
 ```mermaid
 flowchart TD
-    subgraph Pipeline Jobs
+    subgraph pipelineJob
         A[az ml data create]
         B[az ml job create]
         C[az ml model register]
