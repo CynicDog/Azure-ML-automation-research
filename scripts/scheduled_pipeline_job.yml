@@ -6,27 +6,35 @@ compute: azureml:eunsang-ml-research
 jobs:
   prepare_dataset:
     command: |
-      # Create dataset 
-      az ml data create --name iris-dataset \
-        --path /app/datasets/iris.csv \
-        --type uri_file \
+
+      # Create dataset and extract path
+      DATA_OUTPUT=$(az ml data create --name iris-dataset \
+        --path /app/datasets \
+        --type mltable \
         --workspace-name inbrein-azure-ml-research-eunsang \
-        --resource-group inbrein-azure-ml-research
-      
-      # List datasets in the Azure ML workspace
-      az ml data list \
+        --resource-group inbrein-azure-ml-research \
+        --query "path" -o tsv)
+
+      # Save the path to an output file
+      echo $DATA_OUTPUT > ${{outputs.dataset_path}}/dataset_path.txt
+
+    environment:
+      image: eunsangacr.azurecr.io/azureml-with-azcli:latest
+    outputs:
+      dataset_path:
+
+  setup_automl:
+    command: |
+      # Read the dataset path from the input file
+      DATA_PATH=$(cat ${{inputs.dataset_input}}/dataset_path.txt)
+
+      # Create automl job using the dataset path
+      az ml job create --file /app/configs/automl_settings.yml \
+        --set training_data.path=${DATA_PATH} \
         --workspace-name inbrein-azure-ml-research-eunsang \
         --resource-group inbrein-azure-ml-research
 
     environment:
       image: eunsangacr.azurecr.io/azureml-with-azcli:latest
-
-  setup_automl:
-    command: |
-      # Create automl job 
-      az ml job create --file /app/configs/automl_settings.yml \
-        --workspace-name inbrein-azure-ml-research-eunsang \
-        --resource-group inbrein-azure-ml-research
-    
-    environment:
-      image: eunsangacr.azurecr.io/azureml-with-azcli:latest  
+    inputs:
+      dataset_input: ${{parent.jobs.prepare_dataset.outputs.dataset_path}}

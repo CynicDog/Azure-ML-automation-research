@@ -1,12 +1,14 @@
-$schema: https://azuremlsdk2.blob.core.windows.net/preview/0.0.1/autoMLJob.schema.json
+$schema: https://azuremlschemas.azureedge.net/latest/autoMLJob.schema.json
 type: automl
 
 experiment_name: Default
 description: A classification AutoML job
+display_name: eunsang_automl_job
+
 task: classification
 
 training_data:
-  path: "/app/datasets/iris.csv"
+  path: "azureml:iris-dataset:1"
   type: mltable
 
 compute: azureml:eunsang-ml-research
@@ -14,7 +16,6 @@ compute: azureml:eunsang-ml-research
 primary_metric: accuracy
 target_column_name: y
 n_cross_validations: 5
-enable_model_explainability: True
 
 limits:
   timeout_minutes: 600

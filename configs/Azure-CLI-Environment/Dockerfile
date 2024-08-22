@@ -17,6 +17,9 @@ WORKDIR /app
 # Copy the dataset
 COPY iris.csv /app/datasets/iris.csv
 
+# Copy the MLTable file
+COPY MLTable /app/datasets/MLTable
+
 # Copy automl config file
 COPY automl_settings.yml /app/configs/automl_settings.yml
 
