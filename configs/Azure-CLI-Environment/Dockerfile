@@ -20,8 +20,11 @@ COPY iris.csv /app/datasets/iris.csv
 # Copy the MLTable file
 COPY MLTable /app/datasets/MLTable
 
-# Copy automl config file
+# Copy automl create config file
 COPY automl_settings.yml /app/configs/automl_settings.yml
+
+# Copy automl register config file
+COPY best_model_settings.yml /app/configs/best_model_settings.yml
 
 # Log in to Azure
 RUN az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID

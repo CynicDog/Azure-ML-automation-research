@@ -3,10 +3,12 @@ type: pipeline
 display_name: scheduled_pipeline
 compute: azureml:eunsang-ml-research
 
+# settings:
+#   force_rerun: True   # for production
+
 jobs:
   prepare_dataset:
     command: |
-
       # Create dataset and extract path
       DATA_OUTPUT=$(az ml data create --name iris-dataset \
         --path /app/datasets \
@@ -26,15 +28,75 @@ jobs:
   setup_automl:
     command: |
       # Read the dataset path from the input file
-      DATA_PATH=$(cat ${{inputs.dataset_input}}/dataset_path.txt)
+      DATA_PATH=$(cat ${{inputs.dataset_path}}/dataset_path.txt)
 
-      # Create automl job using the dataset path
-      az ml job create --file /app/configs/automl_settings.yml \
+      # Create automl job using the dataset path and capture job name
+      JOB_NAME=$(az ml job create --file /app/configs/automl_settings.yml \
         --set training_data.path=${DATA_PATH} \
+        --workspace-name inbrein-azure-ml-research-eunsang \
+        --resource-group inbrein-azure-ml-research \
+        --query "name" -o tsv)
+
+      # Save the job name to an output file
+      echo $JOB_NAME > ${{outputs.automl_job_name}}/job_name.txt
+
+    environment:
+      image: eunsangacr.azurecr.io/azureml-with-azcli:latest
+    inputs:
+      dataset_path: ${{parent.jobs.prepare_dataset.outputs.dataset_path}}
+    outputs:
+      automl_job_name:
+
+  monitor_automl:
+    command: |
+      # Read the AutoML job name from the input file
+      JOB_NAME=$(cat ${{inputs.automl_job_name}}/job_name.txt)
+
+      # Initialize job status
+      JOB_OUTPUT=""
+
+      # Loop until the job is completed
+      while true; do
+        # Check the job status
+        JOB_OUTPUT=$(az ml job show --name $JOB_NAME \
+          --workspace-name inbrein-azure-ml-research-eunsang \
+          --resource-group inbrein-azure-ml-research 2>&1)
+
+        # Check if the job status contains 'Completed'
+        if echo "$JOB_OUTPUT" | grep -q "Completed"; then
+          echo "Job status: Completed. Exiting loop..."
+          break
+        else
+          echo "Job status: Not completed yet. Waiting for 3 minutes before checking again..."
+          sleep 180  # Sleep for 3 minutes
+        fi
+      done
+
+      # Save the job name again for the next step
+      echo $JOB_NAME > ${{outputs.monitored_job_name}}/job_name.txt
+
+    environment:
+      image: eunsangacr.azurecr.io/azureml-with-azcli:latest
+    inputs:
+      automl_job_name: ${{parent.jobs.setup_automl.outputs.automl_job_name}}
+    outputs:
+      monitored_job_name:
+
+  register_automl:
+    command: |
+      
+      # Download the model artifact to the specified directory
+      az ml job download --name $(cat ${{inputs.monitored_job_name}}/job_name.txt) \
+        --all --download-path /app/configs/downloaded_artifacts \
+        --workspace-name inbrein-azure-ml-research-eunsang \
+        --resource-group inbrein-azure-ml-research
+      
+      # Register the model using the pre-configured YAML file
+      az ml model create -f /app/configs/best_model_settings.yml \
         --workspace-name inbrein-azure-ml-research-eunsang \
         --resource-group inbrein-azure-ml-research
 
     environment:
       image: eunsangacr.azurecr.io/azureml-with-azcli:latest
     inputs:
-      dataset_input: ${{parent.jobs.prepare_dataset.outputs.dataset_path}}
+      monitored_job_name: ${{parent.jobs.monitor_automl.outputs.monitored_job_name}}

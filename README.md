@@ -1,6 +1,6 @@
 # Azure-ML-automation-research
 
-### `pipelineJob` Definition  
+### `pipelineJob` Definition
 ```mermaid
 flowchart TD
     subgraph Azure
@@ -33,17 +33,29 @@ flowchart TD
     linkStyle 0,1,2,3,4,5 stroke-width:.3px;
 ```
 
-### Detailed Tasks of `pipelineJob`   
+### Tasks of `pipelineJob` in details
 ```mermaid
 flowchart TD
     subgraph pipelineJob
-        A[az ml data create]
-        B[az ml job create]
-        C[az ml model register]
-        D[az ml endpoint create]
+        A[prepare_dataset]
+        B[setup_automl]
+        C[monitor_automl]
+        D[register_automl] 
+        E[publish_endpoint]
     end 
 
+    F(datastore/iris mltable)
+    G(model training... for about 12 mins.) 
+    
     A --> B 
-    B --> C 
-    C --> D
+    C --> D 
+    D --> E 
+    A --> F 
+    B --> G     
+    G <--Completed---> C
+    F --> G
 ```
+<details>
+  <summary>Result view of pipeline</summary>
+  <img src="https://github.com/user-attachments/assets/4761098f-c977-4841-861b-62e471d5cbc5"></img>
+</details>

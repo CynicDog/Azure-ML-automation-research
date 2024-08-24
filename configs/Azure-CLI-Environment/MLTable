@@ -5,5 +5,5 @@ transformations:
     delimiter: ','
     empty_as_string: false
     encoding: utf8
-    header: no_header
+    header: all_files_same_headers
 type: mltable

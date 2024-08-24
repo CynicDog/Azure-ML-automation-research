@@ -4,7 +4,7 @@ type: amlcompute
 size: STANDARD_D2_v3
 min_instances: 0
 max_instances: 2
-idle_time_before_scale_down: 800
+idle_time_before_scale_down: 1200
 location: koreacentral
 identity:
   type: system_assigned
