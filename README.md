@@ -57,5 +57,5 @@ flowchart TD
 ```
 <details>
   <summary>Result view of pipeline</summary>
-  <img src="https://github.com/user-attachments/assets/4761098f-c977-4841-861b-62e471d5cbc5"></img>
+  <img src="https://github.com/user-attachments/assets/edb2b43d-123e-4df0-8faf-a4b6fbe50bc6"></img>
 </details>
