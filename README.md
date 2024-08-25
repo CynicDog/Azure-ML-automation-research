@@ -2,35 +2,45 @@
 
 ### `pipelineJob` Definition
 ```mermaid
-flowchart TD
-    subgraph Azure
+C4Context
+    title  
+    
+    Deployment_Node(github, "GitHub") {
+        Component(githubaction, "GitHub Action", "azure-ml-setup.yml", "")
+    }
+
+    Enterprise_Boundary(azure, "Azure") {
         
-        subgraph Azure ACR
-            B(DockerEnv)
-        end
+        Container(acr, "Acure Container Registry")
 
-        subgraph Azure ML
-                C(Compute)
-                subgraph Scheduling_Job
-                    A(pipelineJob) 
-                end 
-        end 
+        Deployment_Node(azml, "Azure Machine Learning") {
+            Component(pipeline, "Pipeline")
 
-    end 
+            Component(compute, "Compute Cluster")
+            
+            Component(scheduler, "Scheduler")
 
-    subgraph GitHub Action
-        D(azure-ml-setup.yml)
-    end 
-    
-    D --> |1|B 
-    D --> |3|Scheduling_Job
-    D --> |2|C
-    C --> A
-    B --> A
-    A --> |every month|A
- 
-    
-    linkStyle 0,1,2,3,4,5 stroke-width:.3px;
+            
+        }
+    }
+
+    Rel(githubaction, acr, "Linux env. with configs and data")
+    UpdateRelStyle(githubaction, acr, $textColor="grey", $offsetX="-80", $offsetY="10")
+
+    Rel(githubaction, compute, "Create compute cluster")
+    UpdateRelStyle(githubaction, compute, $textColor="grey", $offsetX="-80", $offsetY="10")
+
+    Rel(githubaction, scheduler, "Set up schedule")
+    UpdateRelStyle(githubaction, scheduler, $textColor="grey", $offsetX="-80", $offsetY="10")
+
+    Rel(acr, pipeline, "Provdes containerized Linux environment")
+    UpdateRelStyle(acr, pipeline, $textColor="grey", $offsetX="-10", $offsetY="-80")
+
+    Rel(scheduler, pipeline, "Triggers on cron event")
+    UpdateRelStyle(scheduler, pipeline, $textColor="grey", $offsetX="10", $offsetY="100")
+
+    Rel(compute, pipeline, "Provides compute resource")
+    UpdateRelStyle(compute, pipeline, $textColor="grey", $offsetX="10", $offsetY="30")
 ```
 
 ### Tasks of `pipelineJob` in details
