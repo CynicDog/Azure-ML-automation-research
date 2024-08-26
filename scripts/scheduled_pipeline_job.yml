@@ -82,17 +82,56 @@ jobs:
     outputs:
       monitored_job_name:
 
-  register_automl:
+  create_endpoint:
     command: |
+      # Register resource provider for subscription 
+      az provider register --namespace Microsoft.MachineLearningServices
+
+      # Define the endpoint name
+      ENDPOINT_NAME="endpoint-eunsang"
       
+      # Check if the endpoint already exists by capturing the exit code
+      az ml online-endpoint show --name $ENDPOINT_NAME \
+        --workspace-name inbrein-azure-ml-research-eunsang \
+        --resource-group inbrein-azure-ml-research > /dev/null 2>&1
+      
+      if [ $? -eq 0 ]; then
+        echo "Endpoint $ENDPOINT_NAME already exists. Updating existing endpoint."
+        az ml online-endpoint update \
+          -n $ENDPOINT_NAME \
+          -f /app/configs/automl_endpoint_settings.yml \
+          --workspace-name inbrein-azure-ml-research-eunsang \
+          --resource-group inbrein-azure-ml-research
+      else
+        echo "Endpoint $ENDPOINT_NAME does not exist. Creating new endpoint."
+        az ml online-endpoint create \
+          -f /app/configs/automl_endpoint_settings.yml \
+          --workspace-name inbrein-azure-ml-research-eunsang \
+          --resource-group inbrein-azure-ml-research
+      fi
+
+      # Dummy output to ensure this job completes before the next
+      echo "Endpoint operation completed" > ${{outputs.endpoint_trigger}}/endpoint_trigger.txt
+
+    environment:
+      image: eunsangacr.azurecr.io/azureml-with-azcli:latest
+    outputs:
+      endpoint_trigger:
+
+  deploy_best_model:
+    command: |
+      # Wait for the endpoint creation/update to complete
+      echo "Received trigger: $(cat ${{inputs.endpoint_trigger}}/endpoint_trigger.txt)"
+
       # Download the model artifact to the specified directory
       az ml job download --name $(cat ${{inputs.monitored_job_name}}/job_name.txt) \
         --all --download-path /app/configs/downloaded_artifacts \
         --workspace-name inbrein-azure-ml-research-eunsang \
         --resource-group inbrein-azure-ml-research
-      
-      # Register the model using the pre-configured YAML file
-      az ml model create -f /app/configs/best_model_settings.yml \
+
+      # Deploy online endpoint with the best model 
+      az ml online-deployment create \
+        -f /app/configs/automl_deployment_settings.yml \
         --workspace-name inbrein-azure-ml-research-eunsang \
         --resource-group inbrein-azure-ml-research
 
@@ -100,3 +139,4 @@ jobs:
       image: eunsangacr.azurecr.io/azureml-with-azcli:latest
     inputs:
       monitored_job_name: ${{parent.jobs.monitor_automl.outputs.monitored_job_name}}
+      endpoint_trigger: ${{parent.jobs.create_endpoint.outputs.endpoint_trigger}}

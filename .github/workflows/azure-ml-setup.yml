@@ -1,4 +1,4 @@
-name: Azure ML Scheduling an authenticated pipelineJob with dockerized Azure-CLI environment
+name: Azure ML Scheduling
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.1.7
 
       - name: Log in to Azure CLI
         uses: azure/login@v2.1.0
@@ -25,6 +25,7 @@ jobs:
             --build-arg AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }} \
             --build-arg AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }} \
             --build-arg AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }} \
+            --build-arg AZURE_SUBSCRIPTION_ID=${{ secrets.AZURE_SUBSCRIPTION_ID }} \
             -t eunsangacr.azurecr.io/azureml-with-azcli:latest \
             -f ./configs/Azure-CLI-Environment/Dockerfile ./configs/Azure-CLI-Environment
 
@@ -35,13 +36,11 @@ jobs:
       - name: Log out from Azure CLI
         run: az logout
 
-  create-schedule:
+  create-compute-cluster:
     runs-on: ubuntu-latest
-    needs: prepare-and-push-docker-environment
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.1.7
 
       - name: Log in to Azure CLI
         uses: azure/login@v2.1.0
@@ -70,13 +69,31 @@ jobs:
             -o tsv)
           
           # Disable admin user to use managed identity
-          az acr update --name $(basename $acr_instance_name) --admin-enabled false
+          az acr update --name $(basename $acr_instance_name) --admin-enabled false    
 
       - name: Create Azure ML Compute Cluster
         run: |
           az ml compute create --file ./scripts/compute_cluster.yml \
           --resource-group inbrein-azure-ml-research \
           --workspace-name inbrein-azure-ml-research-eunsang
+
+  create-schedule:
+    runs-on: ubuntu-latest
+    needs: [prepare-and-push-docker-environment, create-compute-cluster]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.7
+
+      - name: Log in to Azure CLI
+        uses: azure/login@v2.1.0
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Azure ML CLI extension
+        run: |
+          az extension add -n ml
+          az ml -h 
 
       - name: Create Azure ML Schedule
         run: |

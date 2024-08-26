@@ -1,0 +1,17 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
+name: model-deployment-eunsang
+endpoint_name: endpoint-eunsang
+
+model:
+  path: ./downloaded_artifacts/named-outputs/best_model/
+
+code_configuration:
+  code: ./
+  scoring_script: score.py
+
+environment:
+  conda_file: ./downloaded_artifacts/named-outputs/best_model/conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
+
+instance_type: Standard_E2s_v3
+instance_count: 1
