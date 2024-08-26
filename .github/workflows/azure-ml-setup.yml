@@ -1,4 +1,4 @@
-name: Azure ML Scheduling
+name: Azure ML Scheduling an authenticated pipelineJob with dockerized Azure-CLI environment
 
 on:
   workflow_dispatch:
