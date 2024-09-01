@@ -86,7 +86,9 @@ jobs:
     command: |
       # Register resource provider for subscription 
       az provider register --namespace Microsoft.MachineLearningServices
-
+      az provider register --namespace Microsoft.Cnd 
+      az provider register --namespace Microsoft.PolicyInsights
+      
       # Define the endpoint name
       ENDPOINT_NAME="endpoint-eunsang"
       
