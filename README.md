@@ -59,20 +59,16 @@ flowchart TD
         A[prepare_dataset]
         B[setup_automl]
         C[monitor_automl]
-        D[register_automl] 
-        E[publish_endpoint]
+        D[create_endpoint] 
+        E[deploy_best_model]
+        G(model training... for about 12 mins.) 
     end 
-
-    F(datastore/iris mltable)
-    G(model training... for about 12 mins.) 
     
     A --> B 
-    C --> D 
+    C --> E 
     D --> E 
-    A --> F 
-    B --> G     
-    G <--Completed---> C
-    F --> G
+    B -->      
+    G --Completed---> C
 ```
 <details>
   <summary>Result view of pipeline</summary>
