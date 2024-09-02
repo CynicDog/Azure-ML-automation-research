@@ -70,7 +70,6 @@ flowchart TD
     B -->      
     G --Completed---> C
 ```
-<details>
-  <summary>Result view of pipeline</summary>
-  <img src="https://github.com/user-attachments/assets/edc93003-abab-40c2-9ff4-bae8e636d917"></img>
-</details>
+### Result view of pipeline run 
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/38f993f5-4c13-4a24-8995-b650579a7876">
+
