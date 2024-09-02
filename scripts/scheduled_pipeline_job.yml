@@ -120,7 +120,7 @@ jobs:
       endpoint_trigger:
 
   deploy_best_model:
-    command: |
+    command: | 
       # Wait for the endpoint creation/update to complete
       echo "Received trigger: $(cat ${{inputs.endpoint_trigger}}/endpoint_trigger.txt)"
 
@@ -130,11 +130,33 @@ jobs:
         --workspace-name inbrein-azure-ml-research-eunsang \
         --resource-group inbrein-azure-ml-research
 
-      # Deploy online endpoint with the best model 
-      az ml online-deployment create \
-        -f /app/configs/automl_deployment_settings.yml \
+      # Define the deployment name
+      DEPLOYMENT_NAME="model-deployment-eunsang"
+      ENDPOINT_NAME="endpoint-eunsang"
+
+      # Check if the deployment already exists
+      az ml online-deployment show --endpoint-name $ENDPOINT_NAME \
+        --name $DEPLOYMENT_NAME \
         --workspace-name inbrein-azure-ml-research-eunsang \
-        --resource-group inbrein-azure-ml-research
+        --resource-group inbrein-azure-ml-research > /dev/null 2>&1
+
+      if [ $? -eq 0 ]; then
+        echo "Deployment $DEPLOYMENT_NAME already exists. Updating the existing deployment."
+        az ml online-deployment update \
+          --name $DEPLOYMENT_NAME \
+          --endpoint-name $ENDPOINT_NAME \
+          --file /app/configs/automl_deployment_settings.yml \
+          --workspace-name inbrein-azure-ml-research-eunsang \
+          --resource-group inbrein-azure-ml-research
+      else
+        echo "Deployment $DEPLOYMENT_NAME does not exist. Creating a new deployment."
+        az ml online-deployment create \
+          --name $DEPLOYMENT_NAME \
+          --endpoint-name $ENDPOINT_NAME \
+          --file /app/configs/automl_deployment_settings.yml \
+          --workspace-name inbrein-azure-ml-research-eunsang \
+          --resource-group inbrein-azure-ml-research
+      fi
 
     environment:
       image: eunsangacr.azurecr.io/azureml-with-azcli:latest
