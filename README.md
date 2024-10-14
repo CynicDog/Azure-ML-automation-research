@@ -1,75 +1,197 @@
 # Azure-ML-automation-research
 
-#### Create a dedicated Service Principal for the project
+# 1. Deploy AutoML best model to an online endpoint
 
-```bash
-    az ad sp create-for-rbac --name "{SERVICE_PRINCIPAL_NAME}" \
-     --role contributor \
-     --scopes /subscriptions/{SUBSCRIPTION_ID} \
+<details>
+  <summary> <code>pipelineJob</code> details</summary>
+  <img width="600" alt="image" src="https://github.com/user-attachments/assets/81d27d08-f8c4-400e-b461-c146d843c17a">
+</details>
+
+<details>
+  <summary>Result view of <code>prepare_dataset</code> step</summary>
+  <img src="https://github.com/user-attachments/assets/e4399385-8bf4-4255-b986-e2ae36f61fe5"></img>
+</details>
+
+<details>
+  <summary>Result view of <code>setup_automl</code> step</summary>
+  <img src="https://github.com/user-attachments/assets/9de1490d-43e9-4dd4-b71d-2ff8b68629d8"></img>
+</details>
+
+<details>
+  <summary>Result view of <code>monitor_automl</code> step</summary>
+  <img src="https://github.com/user-attachments/assets/885619ff-483d-4e84-9ec7-71b3c2340ea3"></img>
+</details>
+
+# 2. Deploy AutoML best model to AKS (a public Kubernetes cluster scenario)
+
+### Index 
+  1. [Prepare an Azure Kubernetes Service cluster](#1-prepare-an-azure-kubernetes-service-cluster)
+  2. [Deploy the Azure Machine Learning cluster extension](#2-deploy-the-azure-machine-learning-extension-on-aks-or-arc-kubernetes-cluster)
+  3. [Attach the Kubernetes cluster to your Azure Machine Learning workspace](#3-attach-the-kubernetes-cluster-to-your-azure-machine-learning-workspace)
+  4. Use the Kubernetes compute target from the CLI v2, SDK v2, or the Azure Machine Learning studio UI.
+
+### Version Table 
+|             | Version       |
+|-------------|---------------|
+| Kubernetes version | 1.29.8 |
+| Location    | Korea Central |
+| Network Conf      | kubenet |
+
+## 1. Prepare an Azure Kubernetes Service cluster
+
+Create a dedicated Service Principal for the project
+```powershell
+    az ad sp create-for-rbac --name "{SERVICE_PRINCIPAL_NAME}" `
+     --role contributor `
+     --scopes /subscriptions/{SUBSCRIPTION_ID} `
      --sdk-auth
 ```
 > This will then return a response of credentials in JSON format. Save the JSON as a repository secret with the name of `AZURE_CREDENTIALS`, which will then later be used in Azure CLI login in the GitHub workflow. 
 
-### `pipelineJob` Definition
-```mermaid
-C4Context
-    title  
-    
-    Deployment_Node(github, "GitHub") {
-        Component(githubaction, "GitHub Action", "azure-ml-setup.yml", "")
-    }
+Create a public AKS cluster by running a [workflow](https://github.com/Kyrsang/Azure-ML-automation-research/blob/main/.github/workflows/k8s-1-create-public-AKS-cluster.yml) that creates a cluster and upload a `kubeconfig` file. 
 
-    Enterprise_Boundary(azure, "Azure") {
-        
-        Container(acr, "Acure Container Registry")
+Then download the `kubeconfig` file that is uploaded as an artifact from the result page of the workflow's run:
+```
+PS C:\Users> ls
+...
+-a----      2024-10-14  오후 12:51           9809 kubeconfig
+```
+> Ensure that the directory path containing the `kubeconfig` file does not include any characters that are not supported by the 'cp949' codec, such as Korean characters.
 
-        Deployment_Node(azml, "Azure Machine Learning") {
-            
-            Component(compute, "Compute Cluster")
-            
-            Component(pipeline, "Pipeline")
-            
-            Component(scheduler, "Scheduler")
-        }
-    }
-
-    Rel(githubaction, acr, "Linux env. with configs and data")
-    UpdateRelStyle(githubaction, acr, $textColor="grey", $offsetX="-80", $offsetY="10")
-
-    Rel(githubaction, compute, "Create compute cluster")
-    UpdateRelStyle(githubaction, compute, $textColor="grey", $offsetX="-80", $offsetY="10")
-
-    Rel(githubaction, scheduler, "Set up schedule")
-    UpdateRelStyle(githubaction, scheduler, $textColor="grey", $offsetX="-80", $offsetY="10")
-
-    Rel(acr, pipeline, "Provdes containerized Linux environment")
-    UpdateRelStyle(acr, pipeline, $textColor="grey", $offsetX="-150", $offsetY="-80")
-
-    Rel(scheduler, pipeline, "Triggers on cron event")
-    UpdateRelStyle(scheduler, pipeline, $textColor="grey", $offsetX="-100", $offsetY="30")
-
-    Rel(compute, pipeline, "Provides compute resource")
-    UpdateRelStyle(compute, pipeline, $textColor="grey", $offsetX="-70", $offsetY="10")
+To configure kubectl to refer to the cluster in AKS, set the KUBECONFIG environment variable as follows:
+```
+PS C:\Users> $env:KUBECONFIG = "C:\Users\kubeconfig"
 ```
 
-### Tasks of `pipelineJob` in details
-```mermaid
-flowchart TD
-    subgraph pipelineJob
-        A[prepare_dataset]
-        B[setup_automl]
-        C[monitor_automl]
-        D[create_endpoint] 
-        E[deploy_best_model]
-        G(model training... for about 12 mins.) 
-    end 
-    
-    A --> B 
-    C --> E 
-    D --> E 
-    B -->      
-    G --Completed---> C
+You will see that you are successfully connected to the cluster in AKS:
+
 ```
-### Result view of pipeline run 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/38f993f5-4c13-4a24-8995-b650579a7876">
+PS C:\Users> kubectl config get-contexts
+CURRENT   NAME                  CLUSTER               AUTHINFO                                                    NAMESPACE
+*         eunsang-aks-cluster   eunsang-aks-cluster   clusterUser_inbrein-azure-ml-research_eunsang-aks-cluster
+```
+
+<details>
+  <summary>
+    <code><br>PS C:\Users> kubectl get all -A<br></code>
+  </summary>
+  <br>
+  
+  ```shell
+  NAMESPACE     NAME                                      READY   STATUS    RESTARTS   AGE
+  kube-system   pod/azure-ip-masq-agent-gfnvs             1/1     Running   0          17m
+  kube-system   pod/cloud-node-manager-4wxrb              1/1     Running   0          17m
+  kube-system   pod/coredns-597bb9d4db-42gmw              1/1     Running   0          16m
+  kube-system   pod/coredns-597bb9d4db-4jmpg              1/1     Running   0          17m
+  kube-system   pod/coredns-autoscaler-689db4649c-2f9d2   1/1     Running   0          17m
+  kube-system   pod/csi-azuredisk-node-jjdpp              3/3     Running   0          17m
+  kube-system   pod/csi-azurefile-node-9wwht              3/3     Running   0          17m
+  kube-system   pod/konnectivity-agent-85d8d6f866-9pcqh   1/1     Running   0          17m
+  kube-system   pod/konnectivity-agent-85d8d6f866-tdxc5   1/1     Running   0          17m
+  kube-system   pod/kube-proxy-pnhs2                      1/1     Running   0          17m
+  kube-system   pod/metrics-server-7b685846d6-2wjqc       2/2     Running   0          16m
+  kube-system   pod/metrics-server-7b685846d6-zcrvh       2/2     Running   0          16m
+  
+  NAMESPACE     NAME                     TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)         AGE
+  default       service/kubernetes       ClusterIP   10.0.0.1     <none>        443/TCP         18m
+  kube-system   service/kube-dns         ClusterIP   10.0.0.10    <none>        53/UDP,53/TCP   17m
+  kube-system   service/metrics-server   ClusterIP   10.0.9.56    <none>        443/TCP         17m
+  
+  NAMESPACE     NAME                                        DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+  kube-system   daemonset.apps/azure-ip-masq-agent          1         1         1       1            1           <none>          17m
+  kube-system   daemonset.apps/cloud-node-manager           1         1         1       1            1           <none>          17m
+  kube-system   daemonset.apps/cloud-node-manager-windows   0         0         0       0            0           <none>          17m
+  kube-system   daemonset.apps/csi-azuredisk-node           1         1         1       1            1           <none>          17m
+  kube-system   daemonset.apps/csi-azuredisk-node-win       0         0         0       0            0           <none>          17m
+  kube-system   daemonset.apps/csi-azurefile-node           1         1         1       1            1           <none>          17m
+  kube-system   daemonset.apps/csi-azurefile-node-win       0         0         0       0            0           <none>          17m
+  kube-system   daemonset.apps/kube-proxy                   1         1         1       1            1           <none>          17m
+  
+  NAMESPACE     NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
+  kube-system   deployment.apps/coredns              2/2     2            2           17m
+  kube-system   deployment.apps/coredns-autoscaler   1/1     1            1           17m
+  kube-system   deployment.apps/konnectivity-agent   2/2     2            2           17m
+  kube-system   deployment.apps/metrics-server       2/2     2            2           17m
+  
+  NAMESPACE     NAME                                            DESIRED   CURRENT   READY   AGE
+  kube-system   replicaset.apps/coredns-597bb9d4db              2         2         2       17m
+  kube-system   replicaset.apps/coredns-autoscaler-689db4649c   1         1         1       17m
+  kube-system   replicaset.apps/konnectivity-agent-85d8d6f866   2         2         2       17m
+  kube-system   replicaset.apps/metrics-server-7b445dd694       0         0         0       17m
+  kube-system   replicaset.apps/metrics-server-7b685846d6       2         2         2       16m
+  ```
+</details>
+
+## 2. Deploy the Azure Machine Learning extension on AKS or Arc Kubernetes cluster
+
+Register resource providers for subscription by running: 
+```
+az provider register --namespace Microsoft.KubernetesConfiguration
+```
+
+Install Azure Machine Learning extension on the cluster by running: 
+```powershell 
+az k8s-extension create `
+	--name <EXTENSION_NAME> `
+	--extension-type Microsoft.AzureML.Kubernetes `
+	--cluster-type managedClusters `
+	--cluster-name <AKS_CLUSTER_NAME> `
+	--resource-group <RESOURCE_GROUP_NAME> `
+	--scope cluster `
+	--config `
+		enableTraining=True `
+		enableInference=True `
+		inferenceRouterServiceType=LoadBalancer `
+		allowInsecureConnections=True `
+		InferenceRouterHA=False 
+```
+> The parameters are set for a quick proof of concept to run various ML workloads. For more detailed deployment requirements, refer [here](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-deploy-kubernetes-extension?view=azureml-api-2&tabs=deploy-extension-with-cli#azure-machine-learning-extension-deployment---cli-examples-and-azure-portal). 
+
+
+You will see the Azure Machine Learning extensions deployed on the kubernetes cluster under `azureml` namespace:  
+
+```powershell
+PS C:\Users> kubectl get pods -n azureml
+NAME                                                              READY   STATUS      RESTARTS   AGE
+aml-operator-6fbbddb96f-s27l2                                     2/2     Running     0          8m19s
+amlarc-identity-controller-7dd4f65648-f82sn                       2/2     Running     0          8m19s
+amlarc-identity-proxy-84dddf8f67-l42jc                            2/2     Running     0          8m19s
+azureml-fe-v2-5fb6689988-6kqvj                                    4/4     Running     0          8m19s
+azureml-ingress-nginx-controller-5bff665f9-bbjrw                  1/1     Running     0          8m19s
+eunsang-aks-cluster-ml-extension-kube-state-metrics-68784fm9px4   1/1     Running     0          8m19s
+eunsang-aks-cluster-ml-extension-prometheus-operator-654c49ps4x   1/1     Running     0          8m19s
+gateway-5cb9cdbd49-k9sxm                                          2/2     Running     0          8m19s
+healthcheck                                                       0/1     Completed   0          9m27s
+inference-operator-controller-manager-65f5f74987-b4cxc            2/2     Running     0          8m19s
+metrics-controller-manager-bf7cfb5df-4nxm5                        2/2     Running     0          8m19s
+prometheus-prom-prometheus-0                                      2/2     Running     0          7m55s
+volcano-admission-cd84d5769-pfhz6                                 1/1     Running     0          8m19s
+volcano-controllers-76f648b6b4-bx4hx                              1/1     Running     0          8m19s
+volcano-scheduler-58d96746b9-n4h7h                                1/1     Running     0          8m19s
+```
+
+## 3. Attach the Kubernetes cluster to your Azure Machine Learning workspace
+
+Attach an AKS cluster to Azure Machine Learning workspace by running: 
+```powershell 
+az ml compute attach `
+	--resource-group <RESOURCE_GROUP_NAME> `
+	--workspace-name <WORKSPACE_NAME> `
+	--type Kubernetes `
+	--name k8s-compute `
+	--resource-id "/subscriptions/{SUBSCRIPTION_ID}/resourceGroups/{RESOURCE_GROUP_NAME}/providers/Microsoft.ContainerService/managedclusters/{CLUSTER_NAME}" `
+	--identity-type SystemAssigned `
+	--namespace {A_DEDICATED_K8S_NAMESPACE_FOR_ML_WORKLOADS} `
+	--no-wait
+```
+
+You need to ensure that a namespace for Azure Machine Learning workloads exists on the cluster. The following command will effecively create a new namespace for our project:  
+```powershell 
+PS C:\Users> kubectl create namespace {A_DEDICATED_K8S_NAMESPACE_FOR_ML_WORKLOADS}
+```
+
+<details>
+  <summary> Kubernetes cluster attachment view </summary>
+  <img width="100%" alt="image" src="https://github.com/user-attachments/assets/fc1573e5-47a0-4896-8db3-dd4b594be853">
+</details>
 
