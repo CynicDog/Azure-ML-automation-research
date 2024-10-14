@@ -4,22 +4,22 @@
 
 <details>
   <summary> <code>pipelineJob</code> details</summary>
-  <img width="600" alt="image" src="https://github.com/user-attachments/assets/81d27d08-f8c4-400e-b461-c146d843c17a">
+  <img width="600" alt="image" src="https://github.com/user-attachments/assets/0d89c7fc-8959-4505-b9a6-38981066cfe6">
 </details>
 
 <details>
   <summary>Result view of <code>prepare_dataset</code> step</summary>
-  <img src="https://github.com/user-attachments/assets/e4399385-8bf4-4255-b986-e2ae36f61fe5"></img>
+  <img src="https://github.com/user-attachments/assets/ccd9384a-a6a1-4314-841b-ee2a87a11ff3"></img>
 </details>
 
 <details>
   <summary>Result view of <code>setup_automl</code> step</summary>
-  <img src="https://github.com/user-attachments/assets/9de1490d-43e9-4dd4-b71d-2ff8b68629d8"></img>
+  <img src="https://github.com/user-attachments/assets/d93b4f26-ecf7-4b28-af10-6f1ccc49d705"></img>
 </details>
 
 <details>
   <summary>Result view of <code>monitor_automl</code> step</summary>
-  <img src="https://github.com/user-attachments/assets/885619ff-483d-4e84-9ec7-71b3c2340ea3"></img>
+  <img src="https://github.com/user-attachments/assets/6c600657-6b3a-4712-a6cc-70d72d5b94f2"></img>
 </details>
 
 # 2. Deploy AutoML best model to AKS (a public Kubernetes cluster scenario)
