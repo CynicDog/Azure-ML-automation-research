@@ -192,6 +192,6 @@ PS C:\Users> kubectl create namespace {A_DEDICATED_K8S_NAMESPACE_FOR_ML_WORKLOAD
 
 <details>
   <summary> Kubernetes cluster attachment view </summary>
-  <img width="100%" alt="image" src="https://github.com/user-attachments/assets/fc1573e5-47a0-4896-8db3-dd4b594be853">
+  <img width="100%" alt="image" src="https://github.com/user-attachments/assets/253943df-4fc4-49a2-93d9-fd5942b132a0">
 </details>
 
