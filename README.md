@@ -2,6 +2,7 @@
 
 # 1. Deploy AutoML best model to an online endpoint
 
+
 <details>
   <summary> <code>pipelineJob</code> details</summary>
   <img width="600" alt="image" src="https://github.com/user-attachments/assets/0d89c7fc-8959-4505-b9a6-38981066cfe6">
