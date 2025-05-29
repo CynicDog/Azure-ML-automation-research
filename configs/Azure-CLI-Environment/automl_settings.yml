@@ -1,7 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/autoMLJob.schema.json
 type: automl
 
-experiment_name: Default
+experiment_name: Default 
 description: A classification AutoML job
 display_name: eunsang_automl_job
 
